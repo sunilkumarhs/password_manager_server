@@ -4,6 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
 const authRoutes = require("./src/routes/auth");
+const passRoutes = require("./src/routes/passwords");
 
 dotenv.config();
 
@@ -25,7 +26,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/securepass_server", authRoutes);
-// app.use("", require("./routes/passwordRoutes"));
+app.use("/secure_pass", passRoutes);
 app.use((error, req, res, next) => {
   const status = error.statusCode || 500;
   const message = error.message;

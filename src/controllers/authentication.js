@@ -6,6 +6,7 @@ const sendGridTransport = require("nodemailer-sendgrid-transport");
 const dotenv = require("dotenv");
 const { randomBytes } = require("node:crypto");
 const otpGenerator = require("otp-generator");
+const { decUserData } = require("../middlewares/encryptData");
 
 dotenv.config();
 
@@ -20,53 +21,50 @@ const transporter = nodeMailer.createTransport(
 exports.registerUser = async (req, res, next) => {
   const { email, password, reminder } = req.body.body;
   try {
-    let user = await User.findOne({ email });
+    const user = await User.findOne({ email });
     if (user) {
-      return res.status(400).json({ message: "User already exists" });
+      const error = new Error("User already exists");
+      error.statusCode = 400;
+      throw error;
     }
-    randomBytes(256, (err, buf) => {
-      if (err) throw err;
-      const token = buf.toString("hex");
-      user = new User({
-        email,
-        password,
-        reminder,
-      });
-      const otp = otpGenerator.generate(6, {
-        upperCaseAlphabets: false,
-        specialChars: false,
-        lowerCaseAlphabets: false,
-      });
-      user.save().then((result) => {
-        User.findById(result._id)
-          .then((user) => {
-            if (!user) {
-              const error = new Error("user not found!!");
-              error.statusCode = 404;
-              throw error;
-            }
-            user.otp = otp;
-            user.otpToken = token;
-            user.otpTokenExperiation = Date.now() + 60000;
-            return user.save();
-          })
-          .then((result) => {
-            transporter.sendMail({
-              to: email,
-              from: "puppetmaster010420@gmail.com",
-              subject: "One Time Password!",
-              html: `
-                <p>OTP for verifying user</p>
-                <p>Your otp is ${otp}</p>
-                <p>The OTP is valid for 1 minutes only!</p>
-                `,
-            });
-            res.status(201).json({
-              message: "SignUp successfull!",
-              otpToken: token,
-            });
-          });
-      });
+    const buf = randomBytes(256);
+    if (!buf) {
+      const error = new Error("randomBytes error!!");
+      throw error;
+    }
+    const otpToken = buf.toString("hex");
+    const otp = otpGenerator.generate(6, {
+      upperCaseAlphabets: false,
+      specialChars: false,
+      lowerCaseAlphabets: false,
+    });
+    otpTokenExperiation = Date.now() + 120000;
+    const newUser = new User({
+      email,
+      password,
+      reminder,
+      otp,
+      otpToken,
+      otpTokenExperiation,
+    });
+    const result = await newUser.save();
+    if (!result) {
+      const error = new Error("Error in saving user!!");
+      throw error;
+    }
+    transporter.sendMail({
+      to: email,
+      from: "puppetmaster010420@gmail.com",
+      subject: "One Time Password!",
+      html: `
+        <p>OTP for verifying user</p>
+        <p>Your otp is ${otp}</p>
+        <p>The OTP is valid for 2 minutes only!</p>
+        `,
+    });
+    res.status(201).json({
+      message: "SignUp successfull!",
+      otpToken: otpToken,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -77,16 +75,27 @@ exports.registerUser = async (req, res, next) => {
 };
 
 exports.login = async (req, res, next) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body.body;
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email });
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      const error = new Error("Invalid credential Email not Found!");
+      error.statusCode = 404;
+      throw error;
     }
-    const isMatch = await bcrypt.compare(password, user.password);
+    const decPass = decUserData(user.password);
+    const isMatch = await bcrypt.compare(password, decPass);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      const error = new Error("Invalid credentials!");
+      error.statusCode = 400;
+      throw error;
     }
+    const buf = randomBytes(256);
+    if (!buf) {
+      const error = new Error("randomBytes error!!");
+      throw error;
+    }
+    const token = buf.toString("hex");
     const otp = otpGenerator.generate(6, {
       upperCaseAlphabets: false,
       specialChars: false,
@@ -94,22 +103,25 @@ exports.login = async (req, res, next) => {
     });
     user.otp = otp;
     user.otpToken = token;
-    user.otpTokenExperiation = Date.now() + 60000;
-    user.save().then((result) => {
-      transporter.sendMail({
-        to: email,
-        from: "puppetmaster010420@gmail.com",
-        subject: "One Time Password!",
-        html: `
-            <p>OTP for verifying user</p>
-            <p>Your otp is ${otp}</p>
-            <p>The OTP is valid for 1 minutes only!</p>
-            `,
-      });
-      res.status(201).json({
-        message: "Password match successfull!",
-        otpToken: token,
-      });
+    user.otpTokenExperiation = Date.now() + 120000;
+    const result = await user.save();
+    if (!result) {
+      const error = new Error("Error in saving user!!");
+      throw error;
+    }
+    transporter.sendMail({
+      to: email,
+      from: "puppetmaster010420@gmail.com",
+      subject: "One Time Password!",
+      html: `
+          <p>OTP for verifying user</p>
+          <p>Your otp is ${otp}</p>
+          <p>The OTP is valid for 2 minutes only!</p>
+          `,
+    });
+    res.status(201).json({
+      message: "Password match successfull!",
+      otpToken: token,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -119,31 +131,40 @@ exports.login = async (req, res, next) => {
   }
 };
 exports.verifyOtp = async (req, res, next) => {
-  const { otpToken, otp } = req.body;
+  const { otpToken, otp } = req.body.body;
   try {
-    User.findOne({
+    if (otpToken === "") {
+      const error = new Error("Invalid Token");
+      error.statusCode = 404;
+      throw error;
+    }
+    const user = await User.findOne({
       otpToken: otpToken,
       otpTokenExperiation: { $gt: Date.now() },
-    }).then((user) => {
-      if (!user.otp === otp) {
-        return res.status(400).json({ message: "Invalid OTP" });
-      }
-      const payload = {
-        otp: otpToken,
-      };
-      jwt.sign(
-        payload,
-        process.env.NODE_SERVER_JWT_SECRET,
-        { expiresIn: "1h" },
-        (err, token) => {
-          if (err) throw err;
-          res.status(200).json({
-            message: "User signedIn successfully!",
-            token: token,
-            userId: user._id.toString(),
-          });
-        }
-      );
+    });
+    if (!user) {
+      const error = new Error("User Not Found or Invalid Token");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (user.otp.toString() !== otp) {
+      const error = new Error("Invalid OTP");
+      error.statusCode = 400;
+      throw error;
+    }
+    user.otp = null;
+    user.otpToken = "";
+    user.otpTokenExperiation = null;
+    user.save();
+    const jwtToken = jwt.sign(
+      { otpId: otpToken, userId: user._id },
+      process.env.NODE_SERVER_JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+    res.status(200).json({
+      message: "User signedIn successfully!",
+      token: jwtToken,
+      userId: user._id.toString(),
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -152,6 +173,23 @@ exports.verifyOtp = async (req, res, next) => {
     next(err);
   }
 };
-exports.verifyToken = async (req, res) => {
-  res.json(req.user);
+
+exports.getUser = async (req, res, next) => {
+  const id = req.params.id;
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      const error = new Error("Invalid user Request");
+      error.statusCode = 400;
+      throw error;
+    }
+    res
+      .status(200)
+      .json({ email: user.email, pass: user.password, clue: user.reminder });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };

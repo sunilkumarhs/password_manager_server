@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { encUserData } = require("../middlewares/encryptData");
 
 const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
@@ -19,7 +20,8 @@ UserSchema.pre("save", async function (next) {
     return next();
   }
   const salt = await bcrypt.genSalt(12);
-  this.password = await bcrypt.hash(this.password, salt);
+  const hashPass = await bcrypt.hash(this.password, salt);
+  this.password = encUserData(hashPass);
   next();
 });
 

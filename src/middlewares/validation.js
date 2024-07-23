@@ -3,8 +3,7 @@ const { z, ZodError } = require("zod");
 function validateData(schema) {
   return (req, res, next) => {
     try {
-      console.log(req.body.body);
-      const vali = schema.parse(req.body.body);
+      schema.parse(req.body.body);
       next();
     } catch (error) {
       if (error instanceof ZodError) {

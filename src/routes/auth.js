@@ -3,19 +3,19 @@ const router = express.Router();
 const {
   registerUser,
   login,
-  verifyToken,
   verifyOtp,
+  getUser,
 } = require("../controllers/authentication");
 const { validateData } = require("../middlewares/validation");
 const {
   userRegistrationSchema,
   userLoginSchema,
 } = require("../schemas/userSchemas");
-// const { auth } = require("../middleware/authMiddleware");
+const isAuth = require("../middlewares/is-Authenticated");
 
 router.put("/register", validateData(userRegistrationSchema), registerUser);
 router.post("/login", validateData(userLoginSchema), login);
 router.post("/verifyOtp", verifyOtp);
-// router.get("/me", auth, verifyToken);
+router.get("/fetchUser/:id", isAuth, getUser);
 
 module.exports = router;
