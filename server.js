@@ -5,6 +5,9 @@ const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
 const authRoutes = require("./src/routes/auth");
 const passRoutes = require("./src/routes/passwords");
+const cardRoutes = require("./src/routes/cards");
+const noteRoutes = require("./src/routes/notes");
+const bankRoutes = require("./src/routes/banks");
 
 dotenv.config();
 
@@ -27,6 +30,9 @@ app.use((req, res, next) => {
 // Routes
 app.use("/securepass_server", authRoutes);
 app.use("/secure_pass", passRoutes);
+app.use("/secure_passCards", cardRoutes);
+app.use("/secure_passNotes", noteRoutes);
+app.use("/secure_passBanks", bankRoutes);
 app.use((error, req, res, next) => {
   const status = error.statusCode || 500;
   const message = error.message;

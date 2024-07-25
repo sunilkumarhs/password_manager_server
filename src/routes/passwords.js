@@ -10,9 +10,14 @@ const { validateData } = require("../middlewares/validation");
 const { SiteFormSchema } = require("../schemas/passwordSchema");
 const isAuth = require("../middlewares/is-Authenticated");
 
-router.put("/addSite", isAuth, validateData(SiteFormSchema), addPassword);
-router.post("/editSite", isAuth, validateData(SiteFormSchema), updatedPassword);
+router.post("/addSite", isAuth, validateData(SiteFormSchema), addPassword);
+router.post(
+  "/editSite/:passId",
+  isAuth,
+  validateData(SiteFormSchema),
+  updatedPassword
+);
 router.get("/getSites", isAuth, getPasswords);
-router.get("/deleteSite", isAuth, deletePassword);
+router.delete("/deleteSite/:passId", isAuth, deletePassword);
 
 module.exports = router;

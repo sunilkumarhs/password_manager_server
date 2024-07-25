@@ -4,7 +4,8 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 module.exports = (req, res, next) => {
-  const authHeader = req.get("Authorization");
+  const authHeader =
+    req.headers["authorization"] || req.body.headers.Authorization;
   if (!authHeader) {
     const error = new Error("No token, authorization denied");
     error.statusCode = 401;

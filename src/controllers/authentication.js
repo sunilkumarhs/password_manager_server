@@ -159,7 +159,7 @@ exports.verifyOtp = async (req, res, next) => {
     const jwtToken = jwt.sign(
       { otpId: otpToken, userId: user._id },
       process.env.NODE_SERVER_JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "2h" }
     );
     res.status(200).json({
       message: "User signedIn successfully!",

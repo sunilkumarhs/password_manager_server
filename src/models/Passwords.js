@@ -9,6 +9,7 @@ const PasswordSchema = new mongoose.Schema({
   password: { type: String, required: true },
   notes: { type: String, default: "none" },
   createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date },
 });
 
 module.exports = mongoose.model("Password", PasswordSchema);

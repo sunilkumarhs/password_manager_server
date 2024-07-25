@@ -1,17 +1,17 @@
-const { date } = require("zod");
 const Password = require("../models/Passwords");
 const { encryptData } = require("../middlewares/encryptData");
+const mongoDb = require("mongodb");
 
 exports.getPasswords = async (req, res, next) => {
   try {
     const passwords = await Password.find({ userId: req.userId });
     if (!passwords) {
-      const error = new Error("Fetching of posts failed!!");
+      const error = new Error("Fetching of passwords failed!!");
       error.statusCode = 404;
       throw error;
     }
     res.status(200).json({
-      message: "Adding Password successfull!",
+      message: "Passwords fetch successfull!",
       passwords: passwords,
     });
   } catch (err) {
@@ -23,20 +23,20 @@ exports.getPasswords = async (req, res, next) => {
 };
 
 exports.addPassword = async (req, res, next) => {
-  const { name, folder, website, username, password, notes } = req.body;
+  const { name, folder, website, userName, password, notes } = req.body.body;
   try {
-    const encWebsite = encryptData(website);
-    const encUsername = encryptData(username);
-    const encPassword = encryptData(password);
-    const encNotes = encryptData(notes);
+    const encWebsite = encryptData(website, req.userId);
+    const encUsername = encryptData(userName, req.userId);
+    const encPassword = encryptData(password, req.userId);
+    const encNotes = encryptData(notes, req.userId);
     const newPassword = new Password({
       userId: req.userId,
       name,
       folder,
-      encWebsite,
-      encUsername,
-      encPassword,
-      encNotes,
+      website: encWebsite,
+      username: encUsername,
+      password: encPassword,
+      notes: encNotes,
     });
     const savedPassword = await newPassword.save();
     res.status(201).json({
@@ -52,25 +52,29 @@ exports.addPassword = async (req, res, next) => {
 };
 
 exports.updatedPassword = async (req, res, next) => {
-  const { id, name, folder, website, username, password, createdAt } = req.body;
+  const { name, folder, website, userName, password, notes, createdAt } =
+    req.body.body;
+  const id = req.params.passId;
   try {
-    const encWebsite = encryptData(website);
-    const encUsername = encryptData(username);
-    const encPassword = encryptData(password);
+    const encWebsite = encryptData(website, req.userId);
+    const encUsername = encryptData(userName, req.userId);
+    const encPassword = encryptData(password, req.userId);
+    const encNotes = encryptData(notes, req.userId);
     const updatePassword = await Password.findById(id);
     if (!updatePassword) {
       const error = new Error("Password was not found!!");
       error.statusCode = 404;
       throw error;
     }
-    password.name = name;
-    password.folder = folder;
-    password.website = encWebsite;
-    password.username = encUsername;
-    password.password = encPassword;
-    password.createdAt = createdAt;
-    password.updatedAt = date.now();
-    const updatedPassword = await password.save();
+    updatePassword.name = name;
+    updatePassword.folder = folder;
+    updatePassword.website = encWebsite;
+    updatePassword.username = encUsername;
+    updatePassword.password = encPassword;
+    updatePassword.notes = encNotes;
+    updatePassword.createdAt = createdAt;
+    updatePassword.updatedAt = Date.now();
+    const result = await updatePassword.save();
     if (!result) {
       const error = new Error("Password updation failed!!");
       error.statusCode = 404;
@@ -78,7 +82,7 @@ exports.updatedPassword = async (req, res, next) => {
     }
     res.status(201).json({
       message: "Update Password successfull!",
-      password: updatedPassword,
+      password: result,
     });
   } catch (err) {
     if (!err.statusCode) {

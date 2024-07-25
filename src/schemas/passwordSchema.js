@@ -14,9 +14,9 @@ const SiteFormSchema = z.object({
 });
 
 const NotesFormSchema = z.object({
-  name: z.string(),
+  name: z.string().min(5, { message: "Name must be atleast 5 characters." }),
   folder: z.string(),
-  notes: z.string(),
+  notes: z.string().min(5, { message: "Notes must be atleast 5 characters." }),
 });
 
 const CardFormSchema = z.object({
@@ -31,7 +31,7 @@ const CardFormSchema = z.object({
   cardNumber: z.string().length(16, {
     message: "CardNumber must be valid 16 digit",
   }),
-  CVVCode: z.string().length(3, { message: "CVV code must be 3 digit" }),
+  cvvCode: z.string().length(3, { message: "CVV code must be 3 digit" }),
   startDate: z.string(),
   startYear: z.string().max(4, {
     message: "Year must be of 4 digit",

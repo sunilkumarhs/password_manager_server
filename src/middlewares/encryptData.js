@@ -21,20 +21,14 @@ const decUserData = (encryptedData) => {
 };
 
 const encryptData = (data, id) => {
-  const user = User.findById(id);
-  const encryptedData = AES.encrypt(
-    JSON.stringify(data),
-    decUserData(user.password)
-  ).toString();
+  const encryptedData = AES.encrypt(JSON.stringify(data), id).toString();
   return encryptedData;
 };
 
 const decryptData = (encryptedData, id) => {
-  const user = User.findById(id);
-  const decryptedData = AES.decrypt(
-    encryptedData,
-    decUserData(user.password)
-  ).toString(CryptoJS.enc.Utf8);
+  const decryptedData = AES.decrypt(encryptedData, id).toString(
+    CryptoJS.enc.Utf8
+  );
   return JSON.parse(decryptedData);
 };
 
