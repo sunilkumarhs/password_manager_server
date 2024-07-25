@@ -175,9 +175,8 @@ exports.verifyOtp = async (req, res, next) => {
 };
 
 exports.getUser = async (req, res, next) => {
-  const id = req.params.id;
   try {
-    const user = await User.findById(id);
+    const user = await User.findById(req.userId);
     if (!user) {
       const error = new Error("Invalid user Request");
       error.statusCode = 400;
@@ -186,6 +185,83 @@ exports.getUser = async (req, res, next) => {
     res
       .status(200)
       .json({ email: user.email, pass: user.password, clue: user.reminder });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.verifyEmail = async (req, res, next) => {
+  const { email } = req.body.body;
+  try {
+    const user = await User.findOne({ email: email });
+    if (!user) {
+      const error = new Error("Invalid credential Email not Found!");
+      error.statusCode = 404;
+      throw error;
+    }
+    const buf = randomBytes(256);
+    if (!buf) {
+      const error = new Error("randomBytes error!!");
+      throw error;
+    }
+    const token = buf.toString("hex");
+    const otp = otpGenerator.generate(6, {
+      upperCaseAlphabets: false,
+      specialChars: false,
+      lowerCaseAlphabets: false,
+    });
+    user.otp = otp;
+    user.otpToken = token;
+    user.otpTokenExperiation = Date.now() + 120000;
+    const result = await user.save();
+    if (!result) {
+      const error = new Error("user saving error!!");
+      throw error;
+    }
+    transporter.sendMail({
+      to: email,
+      from: "puppetmaster010420@gmail.com",
+      subject: "One Time Password!",
+      html: `
+          <p>OTP for verifying user</p>
+          <p>Your otp is ${otp}</p>
+          <p>The OTP is valid for 2 minutes only!</p>
+          `,
+    });
+    res.status(200).json({
+      message: "Password reset OTP sent successfully!",
+      otpToken: token,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.passwordReset = async (req, res, next) => {
+  const { password } = req.body.body;
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      const error = new Error("Invalid user not found");
+      error.statusCode = 404;
+      throw error;
+    }
+    user.password = password;
+    const result = await user.save();
+    if (!result) {
+      const error = new Error("Saving user failed");
+      error.statusCode = 400;
+      throw error;
+    }
+    res.status(201).json({
+      message: "Password updated successfully!",
+    });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;

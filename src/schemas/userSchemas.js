@@ -16,5 +16,19 @@ const userLoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(12),
 });
+const emailVerifySchema = z.object({
+  email: z.string().email(),
+});
+const passwordSchema = z.object({
+  password: z.string().regex(passwordRegex, {
+    message:
+      "Your password must contain aleast one uppercase, lowercase, special and number characters",
+  }),
+});
 
-module.exports = { userRegistrationSchema, userLoginSchema };
+module.exports = {
+  userRegistrationSchema,
+  userLoginSchema,
+  emailVerifySchema,
+  passwordSchema,
+};
