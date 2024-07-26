@@ -5,6 +5,7 @@ const { encUserData } = require("../middlewares/encryptData");
 const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  avtarIndex: { type: Number, default: 0 },
   reminder: { type: String, default: "none" },
   createdAt: { type: Date, default: Date.now },
   otp: Number,

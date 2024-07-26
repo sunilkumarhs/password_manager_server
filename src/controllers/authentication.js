@@ -182,9 +182,38 @@ exports.getUser = async (req, res, next) => {
       error.statusCode = 400;
       throw error;
     }
-    res
-      .status(200)
-      .json({ email: user.email, pass: user.password, clue: user.reminder });
+    res.status(200).json({
+      email: user.email,
+      clue: user.reminder,
+      avtarIndex: user.avtarIndex,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.changeAvtar = async (req, res, next) => {
+  const { avtarIndex } = req.body.body;
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      const error = new Error("Invalid user Request");
+      error.statusCode = 400;
+      throw error;
+    }
+    user.avtarIndex = avtarIndex;
+    const result = await user.save();
+    if (!result) {
+      const error = new Error("User Saving Error");
+      error.statusCode = 400;
+      throw error;
+    }
+    res.status(201).json({
+      message: "Saved avtar successfully.",
+    });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -253,6 +282,40 @@ exports.passwordReset = async (req, res, next) => {
       throw error;
     }
     user.password = password;
+    const result = await user.save();
+    if (!result) {
+      const error = new Error("Saving user failed");
+      error.statusCode = 400;
+      throw error;
+    }
+    res.status(201).json({
+      message: "Password updated successfully!",
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.resetPassword = async (req, res, next) => {
+  const { password, newPassword } = req.body.body;
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      const error = new Error("Invalid user not found");
+      error.statusCode = 404;
+      throw error;
+    }
+    const decPass = decUserData(user.password);
+    const isMatch = await bcrypt.compare(password, decPass);
+    if (!isMatch) {
+      const error = new Error("Password credential worng, check password!");
+      error.statusCode = 400;
+      throw error;
+    }
+    user.password = newPassword;
     const result = await user.save();
     if (!result) {
       const error = new Error("Saving user failed");

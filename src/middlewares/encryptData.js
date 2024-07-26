@@ -21,11 +21,17 @@ const decUserData = (encryptedData) => {
 };
 
 const encryptData = (data, id) => {
-  const encryptedData = AES.encrypt(JSON.stringify(data), id).toString();
+  const secKey = process.env.NODE_SERVER_ENC_KEY + id;
+  console.log(secKey);
+  console.log("1");
+  const encryptedData = AES.encrypt(JSON.stringify(data), secKey).toString();
   return encryptedData;
 };
 
 const decryptData = (encryptedData, id) => {
+  const secKey = process.env.NODE_SERVER_ENC_KEY + id;
+  console.log(secKey);
+  console.log("2");
   const decryptedData = AES.decrypt(encryptedData, id).toString(
     CryptoJS.enc.Utf8
   );

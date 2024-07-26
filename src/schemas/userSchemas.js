@@ -25,10 +25,21 @@ const passwordSchema = z.object({
       "Your password must contain aleast one uppercase, lowercase, special and number characters",
   }),
 });
+const passwordResetSchema = z.object({
+  password: z.string().regex(passwordRegex, {
+    message:
+      "Your password must contain aleast one uppercase, lowercase, special and number characters",
+  }),
+  newPassword: z.string().regex(passwordRegex, {
+    message:
+      "Your password must contain aleast one uppercase, lowercase, special and number characters",
+  }),
+});
 
 module.exports = {
   userRegistrationSchema,
   userLoginSchema,
   emailVerifySchema,
   passwordSchema,
+  passwordResetSchema,
 };

@@ -7,6 +7,8 @@ const {
   getUser,
   verifyEmail,
   passwordReset,
+  changeAvtar,
+  resetPassword,
 } = require("../controllers/authentication");
 const { validateData } = require("../middlewares/validation");
 const {
@@ -14,6 +16,7 @@ const {
   userLoginSchema,
   emailVerifySchema,
   passwordSchema,
+  passwordResetSchema,
 } = require("../schemas/userSchemas");
 const isAuth = require("../middlewares/is-Authenticated");
 
@@ -23,5 +26,12 @@ router.post("/verifyOtp", verifyOtp);
 router.post("/verifyEmail", validateData(emailVerifySchema), verifyEmail);
 router.post("/resetPass", isAuth, validateData(passwordSchema), passwordReset);
 router.get("/fetchUser", isAuth, getUser);
+router.post("/setAvtar", isAuth, changeAvtar);
+router.post(
+  "/passReset",
+  isAuth,
+  validateData(passwordResetSchema),
+  resetPassword
+);
 
 module.exports = router;
